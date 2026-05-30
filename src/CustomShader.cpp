@@ -147,9 +147,19 @@ std::string CompiledShaders::EditShader(const std::string& originalSource)
     if (defEnd == std::string::npos)
         throw g.Efmt("Frag source does not contain a ';' after 'vec4 pixColor ='");
 
-    source.insert(defEnd + 1, "\n    windowShader(pixColor);");
-
     std::string pixelGetter = source.substr(pixColorDef + 15, defEnd - (pixColorDef + 15));
+
+    // Now insert windowShader(pixColor); after every occurrence of "vec4 pixColor ="
+    size_t pos = 0;
+    while ((pos = source.find("vec4 pixColor =", pos)) != std::string::npos) {
+        size_t end = source.find(';', pos);
+        if (end == std::string::npos)
+            break;
+        source.insert(end + 1, "\n    windowShader(pixColor);");
+        // advance pos past the inserted text to avoid infinite loop
+        pos = end + 1 + 28;
+    }
+
     std::string customSource = SpecialVariables::EditSource(CustomSource, pixelGetter);
 
     size_t main = source.find("void main(");

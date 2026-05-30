@@ -11,6 +11,19 @@ HOOK_FUNCTION(Desktop::View::, CWindow, opaque,
     return original(thisptr);
 }
 
+HOOK_FUNCTION(, CSurfacePassElement, opaqueRegion,
+    CRegion, (CSurfacePassElement* thisptr))
+{
+    if (thisptr->m_data.pWindow)
+    {
+        auto shaders = g.Manager.GetShaderForWindow(thisptr->m_data.pWindow);
+        if (shaders && shaders->Transparency)
+            return {};
+    }
+
+    return original(thisptr);
+}
+
 HOOK_FUNCTION(Render::, CRenderPass, render,
     CRegion, (Render::CRenderPass* thisptr, const CRegion& damage_))
 {
@@ -25,9 +38,13 @@ HOOK_FUNCTION(Render::, CRenderPass, render,
                 if (shaders)
                 {
                     // bool success = SaveTextureAsBMP(*s->m_data.texture, "/home/micha4w/Code/Linux/Hypr-DarkWindow/todo/" + s->m_data.pWindow->m_class + ".bmp");
-                    if (shaders->Transparency && s->m_data.alpha >= 1)
-                        // so the blur gets drawn
-                        s->m_data.alpha = 0.999f;
+                    if (shaders->Transparency)
+                    {
+                        if (s->m_data.mainSurface && s->m_data.pWindow->m_class.find("gamescope") != std::string::npos)
+                            s->m_data.alpha = 0.0f;
+                        else if (s->m_data.alpha >= 1)
+                            s->m_data.alpha = 0.999f;
+                    }
                 }
             }
         }
